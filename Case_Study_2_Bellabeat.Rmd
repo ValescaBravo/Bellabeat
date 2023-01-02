@@ -1,0 +1,373 @@
+---
+title: "Bellabeat"
+author: "Valesca Bravo"
+date: "2022-12-21"
+output: html_document
+---
+
+```{r librerias}
+
+#install.packages("anytime")
+#install.packages("sqldf")
+#install.packages("data.table")
+#install.packages("magrittr")
+
+library(ggvenn)         
+library(magrittr)
+library(tidyverse)
+library(sqldf)
+library(ggplot2)# plot 
+library(dplyr)
+library(lubridate)
+library(anytime)
+library(corrplot)
+library(ggplot2) 
+library(data.table)
+library(grid)
+library(futile.logger)
+
+```
+
+## Introduction
+
+The present study will investigate Bellabeat, a high-tech manufacturer of health-focused products for women. I will work with the 6 steps of the data analysis process: ask, prepare, process, analyze, share, and act, in order to get inside the dataset that have been proposed by Google in its Data Analyst certification.
+
+ I am trying to resolve, with the daily data, how people are already using their smart devices,in order to gain insights.
+
+
+
+```{r loading datasets}
+
+#general
+weight <- read_csv("~/Google/Capstone/datasets/weightLogInfo_merged.csv")
+sleepDay <- read_csv("~/Google/Capstone/datasets/sleepDay_merged.csv")
+heartrate_seconds <- read_csv("~/Google/Capstone/datasets/heartrate_seconds_merged.csv")
+
+#minutes
+#hourlyCalories <- read_csv("~/Google/Capstone/datasets/hourlyCalories_merged.csv")
+#minuteIntensities <- read_csv("~/Google/Capstone/datasets/minuteIntensitiesNarrow_merged.csv")
+#minuteMETs <- read_csv("~/Google/Capstone/datasets/minuteMETsNarrow_merged.csv")
+#minuteSteps <- read_csv("~/Google/Capstone/datasets/minuteStepsNarrow_merged.csv")
+
+#Hourly
+#hourlyCalories <- read_csv("~/Google/Capstone/datasets/hourlyCalories_merged.csv")
+#hourlyIntensities <- read_csv("~/Google/Capstone/datasets/hourlyIntensities_merged.csv")
+#hourlySteps <- read_csv("~/Google/Capstone/datasets/hourlySteps_merged.csv")
+
+#daily
+dailySteps<- read_csv("~/Google/Capstone/datasets/dailySteps_merged.csv")
+dailyIntensities <- read_csv("~/Google/Capstone/datasets/dailyIntensities_merged.csv")
+dailyCalories <- read_csv("~/Google/Capstone/datasets/dailyCalories_merged.csv")
+dailyActivity <- read_csv("~/Google/Capstone/datasets/dailyActivity_merged.csv")
+
+print("---------------------------------------------weight---------------------------------")
+glimpse(weight)
+print("---------------------------------------------sleepDay------------------------------")
+glimpse(sleepDay)
+print("---------------------------------------------heartrate_seconds----------------------")
+glimpse(heartrate_seconds)
+
+print("---------------------------------------------dailySteps----------------------------")
+glimpse(dailySteps)
+print("---------------------------------------------dailyCalories-------------------------")
+glimpse(dailyCalories)
+print("---------------------------------------------dailyIntensities----------------------")
+glimpse(dailyIntensities)
+print("---------------------------------------------dailyActivity ------------------------")
+glimpse(dailyActivity)
+
+```
+We can see that all the dataframes that are called daily contains 940 row and have similarities columns in between. 
+Firstly, I will fix the data name for Date and then I will verify if the dataframe dailyActivity contains the same information as dailySteps, dailyCalories and dailyIntensities.
+
+In order to do this I will make a new dataframe with the columns to be compared from dailyActivity. And, helping myself with SQL, I will check if there is a difference between this new temporary dataframe and the other three dataframes. 
+This should give me 0 as a result of the information is the same.
+
+```{r fixing Time }
+
+Activity <- dailyActivity# copy to used later.
+heartrate <- heartrate_seconds# copy to used later.
+sleep <-  sleepDay # copy to used later.
+
+
+# fix columns Date dailyActivity
+colnames(dailyActivity)[2]  <- "Date"
+
+colnames(dailySteps)[2]  <- "Date"
+
+colnames(dailyCalories)[2]  <- "Date" 
+
+colnames(dailyIntensities)[2]  <- "Date" 
+
+
+# fix columns Date dailysleepDay
+colnames(sleepDay)[2]  <- "Date"
+
+
+```
+
+```{r dailySteps sql}
+
+# fix columns TotalSteps
+colnames(dailySteps)[3]  <- "TotalSteps" 
+
+
+#temporary dataframe with selected columns to check
+Activity_step <- dailyActivity%>%
+   select(Id, Date, TotalSteps)
+
+#comparison dailyActivity vs dailySteps
+steps <- sqldf("SELECT * FROM Activity_step
+              EXCEPT
+              SELECT * FROM dailySteps")
+
+head(steps)
+
+```
+```{r dailyCalories sql }
+
+colnames(dailyCalories)[2]  <- "Date" 
+
+#temporary dataframe with selected columns to check
+ Activity_Cal <- dailyActivity%>%
+  select(Id, Date, Calories)
+
+ #comparison dailyActivity vs dailyCalories
+Cal <- sqldf("SELECT * FROM Activity_Cal
+              EXCEPT
+              SELECT * FROM dailyCalories")
+
+head(Cal)
+
+
+
+```
+
+```{r Intensities sql }
+
+ 
+#temporary dataframe with selected columns to check
+
+Activity_Intensities <- dailyActivity%>%
+   select(Id, Date, SedentaryMinutes,LightlyActiveMinutes, FairlyActiveMinutes,VeryActiveMinutes, SedentaryActiveDistance,LightActiveDistance,ModeratelyActiveDistance,VeryActiveDistance)
+
+#comparison dailyActivity vs dailyIntensities
+Intensities <- sqldf("SELECT * FROM Activity_Intensities
+              EXCEPT
+              SELECT * FROM dailyIntensities")
+
+head(Intensities)
+```
+Now on, we know that dailyActivity is the dataset summary that contains dailyIntensities, dailyCalories and dailySteps. 
+The next problem is verified how many users are using which product and check if there are users using more than one product.
+
+```{r}
+#checking ID unique values of each dataset
+
+#dailyActivity
+
+print("dailyActivity")
+a1 <- as.data.frame(table(dailyActivity$Id))
+colnames(a1)[1]  <- "ID" 
+dim(a1)
+
+#weight
+print("weight")
+a2 <- as.data.frame(table(weight$Id))
+colnames(a2)[1]  <- "ID" 
+dim(a2)
+
+#sleepDay
+print("sleepDay")
+a3 <- as.data.frame(table(sleepDay$Id))
+colnames(a3)[1]  <- "ID" 
+dim(a3)
+
+#heartrate_seconds
+print("heartrate")
+a4 <- as.data.frame(table(heartrate_seconds$Id))
+colnames(a4)[1]  <- "ID" 
+dim(a4)
+
+
+#dailyIntensities
+print("dailyIntensities")
+a5 <- as.data.frame(table(dailyIntensities$Id))
+colnames(a5)[1]  <- "ID" 
+
+dim(a5)
+
+#dailyCalories
+print("dailyCalories")
+a6 <- as.data.frame(table(dailyCalories$Id))
+colnames(a6)[1]  <- "ID" 
+
+dim(a6)
+
+#dailySteps
+print("dailySteps")
+a7 <- as.data.frame(table(dailySteps$Id))
+colnames(a7)[1]  <- "ID" 
+dim(a7)
+
+
+```
+```{r User venn diagram plot}
+
+users1 <-list('Intensities'=a5$ID,'Calories'=a6$ID,'Steps'=a7$ID)
+# display all the sets
+ggvenn(users1,fill_alpha= 0.1,
+       fill_color = c("yellow","green", "blue"),
+       text_size= 2,
+       set_name_size=3)
+
+users2 <-list('Activity'=a1$ID,'weight'=a2$ID,'sleepDay'=a3$ID,'heartrate'=a4$ID)
+# display all the sets
+ggvenn(users2,fill_alpha= 0.1,
+       fill_color = c("yellow","green", "blue", "red"),
+       text_size= 2,
+       set_name_size=3)
+
+
+
+```
+The dataset summary of daily Intensities, daily Calories and daily Steps is daily Activity, it have 33 users, how we can see in the first venn Diagram, the users are equaly using this 3 products weight 8, Sleepday 24 and finally heartrate 24. 
+Following the business task I crossed the ID information in a venn diagram to check if there are clients using the same products. 
+After checking this venn diagram we can realized that the universe of users of Bellabeat company are 33 people.
+
+Let see aour findings:
+
+
+* We can see that the totality of user in SleepDay(24), are all of them in dailyActivity. 
+First insight: Users that are monitoring their activities, 50%(12/24) of them also are doing it with their heart rate and 25%(6/24) are checking at their weight.
+
+
+* User that are monitoring their heart rate(14), also all of them are in the main dataset, daily activity. Second insight: Users that are monitoring their heart rate, 86%(12/14) of them also are doing it with their sleep and 28%(4/14) are checking at their weight.
+
+
+* User that are monitoring their weight(8), also all of them are in the main dataset, daily activity. 
+Third insight: Users that are monitoring their weight, 75%(6/8) of them also are doing it with their sleep and 50%(4/4) are checking at their heart rate.
+
+Anyways there are 18%(6/33) user that are in the dailyActivity, but they are no monitoring heart rate,weight or sleep.
+
+
+
+### EDA
+```{r are there NaNs?}
+
+# are there NaNs?
+colSums(Activity=="")
+colSums(is.na(Activity))
+
+
+
+```
+
+```{r}
+#Checking the unique 
+apply(Activity,2, function(x) length(unique(x)))
+#apply(X, MARGIN, FUN)Margin1=row/margin2=Columns
+```
+```{r}
+
+#Calculating Correlation Activity
+
+N1<- round(cor(Activity[, unlist(lapply(Activity, is.numeric))]),1)
+
+testRes = cor.mtest(N1, conf.level = 0.95)
+corrplot(N1, p.mat = testRes$p, method = 'square', type = 'lower', insig='blank', tl.cex = 0.5,
+         addCoef.col ='black', number.cex = 0.5, order = 'AOE', diag=FALSE,col = COL2('PRGn'))
+
+```
+We can see that there is a perfect correlation between Total Distance, Tracker Distance, and Total Steps. Another higher correlation with 0.9 of the coefficient is Fairly Active Minutes and Moderately Active Distance and light Active Distance and Light Active minutes.
+Although if we analyzed the variable of Very Active Distance has positive relationships with Very Active Minutes, Total Distance, Tracker Distance, and Total Steps. 
+We can see Calories having relationships with a coefficient of 0.6 with Very Active Minutes, and Total Steps 0,7 with Very Active Minutes, Very Active Distance, and Also light Active Distance.
+Finally, we can see the negative relationship between Sedentary Minutes and some columns having a significative coefficient number of -0,4 with Light Active Minutes and Light Active Distance.
+
+```{r date to time }
+#weekday
+
+dailyActivity$date<- mdy(dailyActivity$Date)
+
+
+dailyActivity$weekday <- weekdays.POSIXt(dailyActivity$date) # Add a weekday columns
+#day
+dailyActivity$day<- as.numeric(format(as.Date(dailyActivity$date),"%d"))
+#month
+dailyActivity$month<- as.numeric(format(as.Date(dailyActivity$date),"%m"))
+
+#day_of_week
+#dailyActivity$weekday<- weekdays(as.Date(dailyActivity$date))
+
+#Format day_of_week  
+
+head(dailyActivity)
+summary(dailyActivity)
+```
+We can see that the data start on the 12th of April, 2016, and finish on the 12th of May 2016.
+The minimum of Calories taken by the users is zero and the maximum is 4.900.
+
+- VeryActiveMinutes have a mean of 21.16 minutes and a maximum of 210 minutes (3.5 hours).
+_ VeryActiveDistance has a mean of 1.503 kilometers and a maximum of 21.9k.
+
+- FairlyActiveMinutes have a mean of 13.56 minutes and a maximum of 143 minutes(2.38 hours).
+- ModeratelyActiveDistance has a mean of 0.5675 kilometers and a maximum of 6.4k.
+
+- LightlyActiveMinutes have a mean of 192 minutes(3.2 hours) and a maximum of 518 minutes(8.63 hours).
+-LightActiveDistance has a mean of 3.341 kilometers and  a maximum of 10.710k
+
+-SedentaryMinutes have a mean of 991.2 minutes(16 hours) and a maximum of 1440.0 minutes(24 hours)
+
+-TotalSteps has a mean of  7638 steps and a maximum of 36019 steps accumulated in a month.
+-TotalDistance has a mean of  5.245 Kilometers and a maximum of 28 kilometers accumulated in a month.
+
+```{r Day performance}
+
+ggplot(data = dailyActivity) + geom_bar(mapping = aes(x =weekday, fill=weekday)) +
+  labs(title = "Day performance ",  caption = "Bellabeat Products")
+
+```
+We can observate that is Tuesday and then Wednesday when the user are using the products the most and and is Monday which gets the less interaction.
+```{r higher coefficient in heatmap review}
+
+# perfect correlationship TotalSteps and TotalDistance
+ggplot(data=dailyActivity, aes(x=TotalSteps, y=TotalDistance, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~weekday) + labs(title = "TotalDistance-TotalSteps Weekdays Performance")
+
+#"FairlyMinutes-Moderately Distance Weekday Performance"
+ggplot(data=dailyActivity, aes(x=FairlyActiveMinutes, y=ModeratelyActiveDistance, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~weekday) + labs(title = "FairlyMinutes-Moderately Distance Weekdays Performance")
+
+#Very Active -Very Active  Distance Weekday Performance
+ggplot(data=dailyActivity, aes(x=VeryActiveMinutes, y=VeryActiveDistance, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~weekday) + labs(title = "Very Active-Very Active  Distance Weekdays Performance")
+
+ggplot(data=dailyActivity, aes(x=LightlyActiveMinutes, y=LightActiveDistance, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~weekday) + labs(title = "Light Active-Light Active  Distance Weekdays Performance")
+
+#SedentaryMinutes -Light Active Distance Weekdays Performance
+ggplot(data=dailyActivity, aes(x=SedentaryMinutes, y=LightActiveDistance, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~weekday) + labs(title = "SedentaryMinutes -Light Active Distance Weekdays Performance")
+
+```
+Total Distance-Total Steps Weekday Performance, we can see that weekends has better accomplishment here,
+- Fairly Minutes-Moderately Distance Weekday Performance, it is Monday which has the highest yield, followed by Sunday, it goes in between 4K and 100 minutes daily, being the worst Friday
+- Very Active -Very Active Distance Weekday Performance, just as the first plot Weekends people are doing 200 minutes and almost reaching 15K
+-Light Active-Light Active Distance Weekday Performance, It has a more smooth performance that is around 7k daily with also regular 400–500 minutes daily.
+-Sedentary Minutes -Light Active Distance Weekdays Performance we can see that here we have a negative correlation because when more Sedentary Minutes less Light Active Distance reaching 3k daily.
+Let's see another relationship.
+```{r plots Calories - TotalSteps }
+
+ggplot(data=dailyActivity, aes(x=TotalSteps, y=Calories, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~weekday) + labs(title = "Calories-TotalSteps Weekday Performance")
+
+ggplot(data=dailyActivity, aes(x=TotalSteps, y=Calories, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~month)+ labs(title = "Calories-TotalSteps montly Performance")
+
+ggplot(data=dailyActivity, aes(x=TotalDistance, y=Calories, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~weekday) + labs(title = "Calories-TotalDistance Weekday Performance")
+
+ggplot(data=dailyActivity, aes(x=TotalDistance, y=Calories, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~month) + labs(title = "Calories-TotalSteps montly Performance")
+
+ggplot(data=dailyActivity, aes(x=VeryActiveMinutes, y=Calories, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~weekday) + labs(title = "Calories-VeryActiveMinutes Weekday Performance")
+
+ggplot(data=dailyActivity, aes(x=VeryActiveMinutes, y=Calories, color=weekday)) +geom_point() +stat_smooth(method=lm) +facet_wrap(~month) + labs(title = "Calories-VeryActiveMinutes montly Performance")
+
+```
+We see that while more steps more calories are consumed by the user being weekend where it reached 30000 steps in total with 5000 Calories. If we search by month April was Saturdays and in May Sundays, where even surpassed the 30000 steps but had a less steeped rise and this phenomenon is transferred to Calories -Distances and Calories-VeryActiveMinutes. That suggest the hight intake of calories make reference to weekends, especially Sundays.
+
+## Refences 
+- Reference: Calbimonte  D.  (2021-10-21)."Ways to compare and find differences for SQL Server tables and data". Recovered el 23 December of 2022 
+https://www.mssqltips.com/sqlservertip/2779/ways-to-compare-and-find-differences-for-sql-server-tables-and-data
