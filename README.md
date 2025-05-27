@@ -6,6 +6,6 @@ http://htmlpreview.github.io/
 
 
 once there, insert:
-https://github.com/ValescaBravo/Bellabeat/blob/main/Case_Study_2_Bellabeat.html
+https://github.com/ValescaBravo/Bellabeat/blob/main/Bellabeat_Upgraded_Portfolio.html
 
 Thanks
