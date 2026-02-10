@@ -1,1 +1,479 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bellabeat | Product Analytics Case Study (R) — Valesca Bravo</title>
+  <meta name="description" content="Product analytics case study using a public wearable-activity dataset. Exploratory analysis in R, translated into engagement hypotheses and measurement-ready recommendations." />
+
+  <!-- Match portfolio stack -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --navy:#1d085e;
+      --teal:#13d6c1;
+      --teal-dark:#0a9a88;
+
+      --white:#ffffff;
+      --gray-light:#f8f9fa;
+      --gray-med:#6c757d;
+      --gray-dark:#343a40;
+
+      --ink:#0b1220;
+      --border: rgba(19,214,193,0.35);
+
+      --radius: 18px;
+      --shadow-float: 0 26px 70px rgba(0,0,0,0.30);
+      --shadow-card: 0 14px 30px rgba(0,0,0,0.14);
+    }
+
+    body{
+      margin:0;
+      font-family:'Inter', sans-serif;
+      background: var(--navy);
+      color: white;
+    }
+
+    /* Magazine texture on navy */
+    .mag-texture{
+      background-image:
+        radial-gradient(900px 420px at 18% 10%, rgba(19,214,193,0.18), transparent 60%),
+        radial-gradient(780px 380px at 82% 12%, rgba(255,255,255,0.10), transparent 55%),
+        linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: auto, auto, 56px 56px, 56px 56px;
+    }
+
+    /* Floating panel (white) */
+    .panel{
+      background: rgba(255,255,255,0.98);
+      color: var(--ink);
+      border-radius: 28px;
+      box-shadow: var(--shadow-float);
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    /* Card (white) with teal accents */
+    .card{
+      background: rgba(255,255,255,0.98);
+      color: var(--ink);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-card);
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .card:hover{
+      transform: translateY(-6px);
+      box-shadow: 0 20px 42px rgba(0,0,0,0.18);
+      border-color: rgba(19,214,193,0.55);
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(29,8,94,0.06);
+      border: 1px solid rgba(29,8,94,0.14);
+      color: var(--navy);
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.01em;
+    }
+
+    .kicker{
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(19,214,193,0.95);
+    }
+
+    .headline{
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.02;
+    }
+
+    .headline-accent{
+      color: var(--teal);
+      text-shadow: 0 10px 30px rgba(19,214,193,0.18);
+    }
+
+    /* Buttons */
+    .btn-primary{
+      background: var(--navy);
+      color: white;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 900;
+      box-shadow: 0 14px 26px rgba(29,8,94,0.28);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-primary:hover{ background:#12043f; }
+
+    .btn-teal{
+      background: var(--teal);
+      color: #061013;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 900;
+      box-shadow: 0 14px 26px rgba(19,214,193,0.26);
+      border: 1px solid rgba(6,16,19,0.10);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-teal:hover{ background: var(--teal-dark); }
+
+    .btn-ghost{
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,0.22);
+      color: white;
+      background: rgba(255,255,255,0.06);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.10); }
+
+    /* Links on white */
+    .link{
+      color: var(--navy);
+      font-weight: 800;
+    }
+    .link:hover{ text-decoration: underline; }
+
+    /* Navbar (floating dark) */
+    .navglass{
+      background: rgba(10,8,30,0.40);
+      border: 1px solid rgba(255,255,255,0.14);
+      backdrop-filter: blur(10px);
+      border-radius: 18px;
+    }
+
+    .rule{ height: 1px; background: rgba(19,214,193,0.30); width: 100%; }
+
+    /* Content typography (inside white panels) */
+    .prose p{ color: var(--gray-dark); }
+    .prose ul{ color: var(--gray-dark); }
+    .prose li{ margin: 6px 0; }
+
+    /* Tables / code blocks for portfolio look */
+    .table-wrap{ overflow-x:auto; }
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ text-align:left; padding: 10px 12px; border-bottom: 1px solid rgba(29,8,94,0.12); vertical-align: top; }
+    th{ color: var(--navy); font-weight: 900; background: rgba(29,8,94,0.04); }
+    code, pre{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: rgba(29,8,94,0.06);
+      border: 1px solid rgba(29,8,94,0.10);
+      border-radius: 12px;
+    }
+    pre{ padding: 14px 16px; overflow:auto; }
+    code{ padding: 2px 8px; }
+
+    /* Anchor offset for sticky header */
+    section{ scroll-margin-top: 110px; }
+  </style>
+</head>
+
+<body>
+  <!-- NAV -->
+  <header class="sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 py-4">
+      <div class="navglass px-4 py-3 flex items-center justify-between">
+        <div class="leading-tight">
+          <p class="text-xs font-semibold opacity-80">Case study</p>
+          <p class="text-base font-extrabold">Bellabeat</p>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-7 text-sm font-semibold opacity-90">
+          <a href="#overview" class="hover:opacity-100">Overview</a>
+          <a href="#insights" class="hover:opacity-100">Insights</a>
+          <a href="#recommendations" class="hover:opacity-100">Recommendations</a>
+          <a href="#appendix" class="hover:opacity-100">Appendix</a>
+        </nav>
+
+        <a class="btn-ghost" href="https://valescabravo.github.io/#projects" target="_blank" rel="noopener">
+          Back to portfolio
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="mag-texture">
+    <div class="max-w-6xl mx-auto px-6 pt-10 pb-10">
+
+      <div class="panel p-8 md:p-12">
+        <p class="kicker">PRODUCT ANALYTICS · R</p>
+
+        <h1 class="headline text-4xl md:text-6xl mt-3">
+          Bellabeat
+          <span class="headline-accent">wearables insights</span>
+        </h1>
+
+        <p class="mt-5 text-base md:text-lg" style="color: var(--gray-dark); max-width: 78ch;">
+          Exploratory analysis of a public wearable-activity dataset in R, translated into engagement hypotheses and
+          measurement-ready recommendations. This is an educational case study (not Bellabeat internal data).
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a class="btn-primary" href="#overview">View summary</a>
+          <a class="btn-teal" href="https://github.com/ValescaBravo/Bellabeat" target="_blank" rel="noopener">Code (GitHub)</a>
+        </div>
+
+        <div class="mt-7 flex flex-wrap gap-2">
+          <span class="chip">R / RStudio</span>
+          <span class="chip">EDA</span>
+          <span class="chip">Product analytics</span>
+          <span class="chip">Storytelling</span>
+        </div>
+      </div>
+
+      <!-- quick tiles -->
+      <div class="mt-8 grid md:grid-cols-3 gap-4">
+        <div class="card p-5">
+          <p class="text-xs font-extrabold" style="color: var(--teal-dark); letter-spacing:0.12em; text-transform:uppercase;">Goal</p>
+          <p class="mt-2 text-sm" style="color: var(--gray-dark);">
+            Understand usage patterns and propose actions to improve engagement and retention.
+          </p>
+        </div>
+
+        <div class="card p-5">
+          <p class="text-xs font-extrabold" style="color: var(--teal-dark); letter-spacing:0.12em; text-transform:uppercase;">Deliverables</p>
+          <p class="mt-2 text-sm" style="color: var(--gray-dark);">
+            Cleaned dataset, exploratory insights, and stakeholder-ready recommendations with measurement ideas.
+          </p>
+        </div>
+
+        <div class="card p-5">
+          <p class="text-xs font-extrabold" style="color: var(--teal-dark); letter-spacing:0.12em; text-transform:uppercase;">Caveat</p>
+          <p class="mt-2 text-sm" style="color: var(--gray-dark);">
+            Insights are descriptive and dataset-specific; no causal claims.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CONTENT -->
+  <main class="max-w-6xl mx-auto px-6 pb-16">
+
+    <section id="overview" class="pt-10">
+      <div class="flex items-end justify-between gap-6">
+        <div>
+          <p class="kicker">Summary</p>
+          <h2 class="text-3xl md:text-4xl font-extrabold mt-2">Overview</h2>
+          <p class="mt-2 text-sm opacity-80">What was analysed, and what this demonstrates.</p>
+        </div>
+      </div>
+
+      <div class="mt-6 rule"></div>
+
+      <div class="mt-6 grid lg:grid-cols-3 gap-6">
+        <div class="card p-6 lg:col-span-2 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">Executive summary</h3>
+          <ul class="mt-3 text-sm">
+            <li>Analysed public wearable-activity logs (activity, movement intensity and related daily summaries).</li>
+            <li>Performed data cleaning, quality checks and exploratory analysis in R.</li>
+            <li>Identified behavioural patterns that can inform product messaging and engagement tactics.</li>
+            <li>Translated observations into proposed actions and measurement-ready metrics (e.g., weekly active users, retention proxies, feature adoption).</li>
+          </ul>
+
+          <p class="mt-4 text-sm">
+            This page is a curated, portfolio-style summary. If you want the full, code-heavy output, see the appendix.
+          </p>
+        </div>
+
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">Stakeholders & key questions</h3>
+          <div class="table-wrap mt-3">
+            <table>
+              <thead>
+                <tr>
+                  <th>Stakeholder</th>
+                  <th>Primary question</th>
+                </tr>
+              </thead>
+              <tbody class="text-sm">
+                <tr>
+                  <td>Product Manager</td>
+                  <td>Where are the strongest drop-offs and what behaviours suggest “at-risk” users?</td>
+                </tr>
+                <tr>
+                  <td>Marketing Lead</td>
+                  <td>Which usage patterns can be translated into clearer messaging and onboarding prompts?</td>
+                </tr>
+                <tr>
+                  <td>Leadership</td>
+                  <td>What are the highest-impact experiments to validate next (with measurable outcomes)?</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 grid lg:grid-cols-2 gap-6">
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">Data & tools</h3>
+          <ul class="mt-3 text-sm">
+            <li><strong>Data:</strong> public wearable-activity dataset (educational use).</li>
+            <li><strong>Environment:</strong> R / RStudio.</li>
+            <li><strong>Focus:</strong> descriptive EDA, behavioural patterns, and hypothesis framing.</li>
+          </ul>
+        </div>
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">Method (high-level)</h3>
+          <ol class="mt-3 text-sm list-decimal ml-5">
+            <li>Prepare: check schema, completeness, duplicates and date ranges.</li>
+            <li>Process: standardise types, join relevant tables, handle missingness.</li>
+            <li>Analyse: explore distributions, temporal patterns and usage intensity.</li>
+            <li>Share: summarise findings in stakeholder language.</li>
+            <li>Act: propose experiments and define measurement.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section id="insights" class="pt-12">
+      <div class="mt-10 rule"></div>
+      <p class="kicker mt-10">Insights</p>
+      <h2 class="text-3xl md:text-4xl font-extrabold mt-2">Key insights (observed patterns)</h2>
+
+      <div class="mt-6 grid md:grid-cols-2 gap-6">
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">1) Usage intensity varies widely</h3>
+          <p class="mt-3 text-sm">
+            The dataset shows a spread of low-to-high activity patterns, suggesting that “one-size-fits-all” engagement prompts may not land equally well across users.
+          </p>
+        </div>
+
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">2) Consistency matters more than peaks</h3>
+          <p class="mt-3 text-sm">
+            Behaviour appears more sustainable when users show steady patterns rather than occasional spikes. This supports onboarding that reinforces small, repeatable habits.
+          </p>
+        </div>
+
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">3) Time-based rhythms can guide nudges</h3>
+          <p class="mt-3 text-sm">
+            Day-to-day rhythms (e.g., weekday vs weekend differences) can inform when to deliver reminders, challenges or personalised summaries.
+          </p>
+        </div>
+
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">4) “At-risk” signals are measurable</h3>
+          <p class="mt-3 text-sm">
+            Simple indicators like declining activity frequency or reduced logging consistency can be used as early-warning flags for retention interventions.
+          </p>
+        </div>
+      </div>
+
+      <p class="mt-6 text-sm" style="color: rgba(255,255,255,0.82);">
+        <strong>Note:</strong> Insights are descriptive and based on the available dataset; they are presented as hypotheses to validate with product instrumentation and controlled tests.
+      </p>
+    </section>
+
+    <section id="recommendations" class="pt-12">
+      <div class="mt-10 rule"></div>
+      <p class="kicker mt-10">Action</p>
+      <h2 class="text-3xl md:text-4xl font-extrabold mt-2">Recommendations (proposed)</h2>
+
+      <div class="mt-6 grid lg:grid-cols-3 gap-6">
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">Segmented onboarding</h3>
+          <p class="mt-3 text-sm">
+            Tailor onboarding prompts by usage intensity (light / moderate / heavy). Avoid overwhelming low-activity users.
+          </p>
+          <p class="mt-3 text-xs" style="color: var(--gray-med);">
+            Measure: onboarding completion, week-1 activation, WAU.
+          </p>
+        </div>
+
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">Habit loops</h3>
+          <p class="mt-3 text-sm">
+            Reinforce consistent behaviours with streaks, light challenges and weekly summaries focused on progress, not perfection.
+          </p>
+          <p class="mt-3 text-xs" style="color: var(--gray-med);">
+            Measure: retention proxy, streak adoption, weekly summary opens.
+          </p>
+        </div>
+
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">Smart nudges</h3>
+          <p class="mt-3 text-sm">
+            Use time-based rhythms to schedule reminders when users are most likely to engage (and suppress prompts when they are not).
+          </p>
+          <p class="mt-3 text-xs" style="color: var(--gray-med);">
+            Measure: nudge CTR, session starts, churn indicators.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-6 grid lg:grid-cols-2 gap-6">
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">Limitations</h3>
+          <ul class="mt-3 text-sm">
+            <li>Public dataset: may not represent Bellabeat customers.</li>
+            <li>Descriptive analysis only: no causal inference.</li>
+            <li>No access to product event instrumentation, cohorts or paid acquisition context.</li>
+          </ul>
+        </div>
+
+        <div class="card p-6 prose">
+          <h3 class="text-lg font-extrabold" style="color: var(--navy);">Next steps (iteration 2)</h3>
+          <ul class="mt-3 text-sm">
+            <li>Define an event taxonomy (activation, habit loops, retention milestones).</li>
+            <li>Build cohort retention and funnel views (new vs returning, onboarding completion).</li>
+            <li>Design A/B tests for segmented onboarding and nudge timing.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="appendix" class="pt-12">
+      <div class="mt-10 rule"></div>
+      <p class="kicker mt-10">Appendix</p>
+      <h2 class="text-3xl md:text-4xl font-extrabold mt-2">Evidence & files</h2>
+
+      <div class="card p-6 mt-5 prose">
+        <p class="text-sm">
+          For transparency, the original HTML output (including code) is available in this repository:
+        </p>
+
+        <div class="mt-4 flex flex-wrap gap-3">
+          <a class="btn-primary" href="./Bellabeat_Upgraded_Portfolio.html">Open original full output (HTML)</a>
+          <a class="btn-teal" href="https://github.com/ValescaBravo/Bellabeat" target="_blank" rel="noopener">View repo on GitHub</a>
+        </div>
+
+        <p class="mt-4 text-xs" style="color: var(--gray-med);">
+          Credits: Educational case study authored by Valesca Bravo. Dataset used for learning purposes.
+        </p>
+      </div>
+    </section>
+
+    <footer class="pt-14 text-sm opacity-80">
+      © 2026 Valesca Bravo · NAVY #1d085e · TEAL #13d6c1 · TEAL_DARK #0a9a88
+    </footer>
+
+  </main>
+</body>
+</html>
 
